@@ -26,6 +26,21 @@ module.exports = function (grunt) {
             all: {
                 dest: 'tmp/bower.js'
             }
+        },
+        
+        gittag: {
+            all: {
+                options: {
+                    tag: 'v<%= versionFile.version %>'
+                }
+            }
+        },
+        gitpush: {
+            all: {
+                options: {
+                    tags: true
+                }    
+            }
         }
     });
 
@@ -33,7 +48,11 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-bower-concat');
     grunt.loadNpmTasks('grunt-bower-task');
+    grunt.loadNpmTasks('grunt-git');
 
     // Default task(s).
     grunt.registerTask('default', ['bower', 'bower_concat', 'uglify']);
+    
+    // Release a bower version
+    grunt.registerTask('releaseBower', ['gittag', 'gitpush']);
 };
