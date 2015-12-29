@@ -1,0 +1,25 @@
+{
+  "name": "microserviceanalytics-core",
+  "version": "1.0.1",
+  "homepage": "https://www.microserviceanalytics.com",
+  "authors": [
+    "James Randall"
+  ],
+  "description": "JavaScript support for Microservice Analytics",
+  "keywords": [
+    "analytics",
+    "microservice"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "node-uuid": ">=1.4.7"
+  },
+  "main": "microserviceAnalyticsCore.js"
+}
