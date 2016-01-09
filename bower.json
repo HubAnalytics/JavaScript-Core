@@ -1,6 +1,5 @@
 {
   "name": "microserviceanalytics-core",
-  "version": "1.0.1",
   "homepage": "https://www.microserviceanalytics.com",
   "authors": [
     "James Randall"
@@ -16,7 +15,8 @@
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "tests",
+    "lib"
   ],
   "dependencies": {
     "node-uuid": ">=1.4.7"
