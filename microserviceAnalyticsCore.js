@@ -251,4 +251,4 @@
     };
 
     global.analytics = analytics;
-}).call();
+}).call(this);
