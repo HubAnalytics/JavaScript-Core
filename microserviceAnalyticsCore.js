@@ -250,5 +250,5 @@
         }
     };
 
-    global.analytics = analytics;
+    global.microserviceAnalytics = analytics;
 }).call(this);
