@@ -114,7 +114,7 @@
     //   propertyId - required, must match a property ID configured in the portal
     //   propertyKey - required, access key, must match a data access key for the property configured in the portal
     //   interval - optional, defaults to 3000, interval between sending batched client events to the analytic servers
-    //   collectionEndPoint - optional, defaults to production servers, url to send events t
+    //   collectionEndpoint - optional, defaults to production servers, url to send events t
     //   correlationIdPrefix - optional, defaults to the property ID, a string to prefix correlation IDs with
     //   autoStartJourneys - optional, defaults to true, when enabled the events listed below trigger the start of a new journey when the source element as an attribute of data-journey. That attribute must name the journey.
     //   httpBlacklist - array of regex's that when matched will exclude those http calls from tracking
@@ -127,14 +127,11 @@
     analytics.configure = function (options) {
         propertyId = options.propertyId;
         propertyKey = options.propertyKey;
-        if (options.endpoint) {
-            collectionEndPoint = options.endpoint;
-        }
         if (options.interval) {
             interval = options.interval;
         }
-        if (options.collectionEndPoint) {
-            collectionEndPoint = options.collectionEndPoint;
+        if (options.collectionEndpoint) {
+            collectionEndPoint = options.collectionEndpoint;
         }
         if (options.correlationIdPrefix) {
             correlationIdPrefix = options.correlationIdPrefix;
