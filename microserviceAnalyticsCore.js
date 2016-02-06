@@ -95,9 +95,13 @@
         XMLHttpRequest.prototype.open = function () {
             var that = this;
             var correlationId = createCorrelationId();
+            var thatonreadystatechange = that.onreadystatechange;
             this.onreadystatechange = function () {
                 if (that.readyState === XMLHttpRequest.DONE && isHttpError(that.status)) {
                     analytics.handleHttpError(that.status, that.response, correlationId);
+                }
+                if (thatonreadystatechange) {
+                    thatonreadystatechange();
                 }
             };
             open.apply(this, arguments);
