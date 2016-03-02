@@ -7,6 +7,8 @@
     var propertyKey;
     var interval = 3000;
     var collectionEndPoint = "https://collection.microserviceanalytics.com/v1/event";
+    var correlationIdKey = "correlation-id";
+    var correlationEnabled = true;
     var timerId = null;
     var correlationIdPrefix = "";
     var autoStartJourneys = true;
@@ -105,7 +107,9 @@
                 }
             };
             open.apply(this, arguments);
-            this.setRequestHeader('correlation-id', correlationId);
+            if (correlationEnabled) {
+                this.setRequestHeader(correlationIdKey, correlationId);
+            }
         };
     })(XMLHttpRequest.prototype.open);
     (function (send) {
@@ -117,7 +121,9 @@
     // Options include:
     //   propertyId - required, must match a property ID configured in the portal
     //   propertyKey - required, access key, must match a data access key for the property configured in the portal
-    //   interval - optional, defaults to 3000, interval between sending batched client events to the analytic servers
+    //   correlationEnabled - optional, defaults to true, is correlation information sent
+    //   correlationIdKey - optional, defaults to correlation-id, the http header to use to send correlation IDs with
+    //   uploadIntervalMs - optional, defaults to 3000, interval between sending batched client events to the analytic servers
     //   collectionEndpoint - optional, defaults to production servers, url to send events t
     //   correlationIdPrefix - optional, defaults to the property ID, a string to prefix correlation IDs with
     //   autoStartJourneys - optional, defaults to true, when enabled the events listed below trigger the start of a new journey when the source element as an attribute of data-journey. That attribute must name the journey.
@@ -131,11 +137,17 @@
     analytics.configure = function (options) {
         propertyId = options.propertyId;
         propertyKey = options.propertyKey;
-        if (options.interval) {
-            interval = options.interval;
+        if (options.uploadIntervalMs) {
+            interval = options.uploadIntervalMs;
         }
         if (options.collectionEndpoint) {
             collectionEndPoint = options.collectionEndpoint;
+        }
+        if (options.correlationIdKey) {
+            correlationIdKey = options.correlationIdKey;
+        }
+        if (options.correlationEnabled) {
+            correlationEnabled = options.correlationEnabled;
         }
         if (options.correlationIdPrefix) {
             correlationIdPrefix = options.correlationIdPrefix;
