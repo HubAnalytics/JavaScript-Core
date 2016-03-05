@@ -22,6 +22,24 @@
         endJourneyAfterHttpRequest: false,
         journeyCodeOwnedByScope: false
     };
+    var userIdProvider = function() {
+        var userId = window.localStorage.getItem('msa-user-id');
+        if (!userId) {
+            userId = uuid.v4();
+            window.localStorage.setItem('msa-user-id', userId);
+        }
+        return userId;
+    };
+    var userIdKey = 'msa-user-id';
+    var sessionIdProvider = function() {
+        var sessionId = window.sessionStorage.getItem('msa-session-id');
+        if (!sessionId) {
+            sessionId = uuid.v4();
+            window.sessionStorage.setItem('msa-session-id', sessionId);
+        }
+        return sessionId;
+    };
+    var sessionIdKey = 'msa-session-id';
 
     function scheduleNextUpload() {
         timerId = window.setTimeout(uploadData, interval);
@@ -110,6 +128,14 @@
             if (correlationEnabled) {
                 this.setRequestHeader(correlationIdKey, correlationId);
             }
+            var sessionId = sessionIdProvider();
+            if (sessionId) {
+                this.setRequestHeader(sessionIdKey, sessionId);
+            }
+            var userId= userIdProvider();
+            if (userId) {
+                this.setRequestHeader(userIdKey, userId);
+            }
         };
     })(XMLHttpRequest.prototype.open);
     (function (send) {
@@ -129,6 +155,10 @@
     //   autoStartJourneys - optional, defaults to true, when enabled the events listed below trigger the start of a new journey when the source element as an attribute of data-journey. That attribute must name the journey.
     //   httpBlacklist - array of regex's that when matched will exclude those http calls from tracking
     //   httpWhitelist - array of regex's that when matched will include only those http calls in tracking
+    //   userIdProvider - function that returns a user ID as a string, optional, defaults to a guid generated if missing and saved in local storage
+    //   sessionIdProvider - function that returns a session ID as a string, optional, defaults to a guid generated if missing and saved in session storage
+    //   userIdKey - optional, defaults to msa-user-id, the http header to use to send user IDs with
+    //   sessionIdKey - optional, defaults to msa-session-id, the http header to use to send session IDs with
     // 
     // You can set both a whitelist and a blacklist but you only need one.
     //
@@ -163,6 +193,18 @@
         }
         if (options.httpWhitelist) {
             httpWhitelist = options.httpWhitelist;
+        }
+        if (options.userIdProvider) {
+            userIdProvider = options.userIdProvider;
+        }
+        if (options.userIdKey) {
+            userIdKey = options.userIdKey;
+        }
+        if (options.sessionIdProvider) {
+            sessionIdProvider = options.sessionIdProvider;
+        }
+        if (options.sessionIdKey) {
+            sessionIdKey = options.sessionIdKey;
         }
         if (autoStartJourneys) {
             captureEvents();
