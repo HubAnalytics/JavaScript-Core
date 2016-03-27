@@ -16,6 +16,7 @@
     var currentJourneyEndsOnError = true;
     var currentJourneyCreatedScope = false;
     var scopeCorrelationId = null;
+    var isDisabledDueToAuthorizationFailure = false;
     var httpWhitelist = [];
     var httpBlacklist = [];
     var analytics = {
@@ -23,26 +24,32 @@
         journeyCodeOwnedByScope: false
     };
     var userIdProvider = function() {
-        var userId = window.localStorage.getItem('msa-user-id');
-        if (!userId) {
-            userId = uuid.v4();
-            window.localStorage.setItem('msa-user-id', userId);
+        if (window) {
+            var userId = window.localStorage.getItem('msa-user-id');
+            if (!userId) {
+                userId = uuid.v4();
+                window.localStorage.setItem('msa-user-id', userId);
+            }
+            return userId;            
         }
-        return userId;
+        return undefined;
     };
     var userIdKey = 'msa-user-id';
     var sessionIdProvider = function() {
-        var sessionId = window.sessionStorage.getItem('msa-session-id');
-        if (!sessionId) {
-            sessionId = uuid.v4();
-            window.sessionStorage.setItem('msa-session-id', sessionId);
+        if (window) {
+            var sessionId = window.sessionStorage.getItem('msa-session-id');
+            if (!sessionId) {
+                sessionId = uuid.v4();
+                window.sessionStorage.setItem('msa-session-id', sessionId);
+            }
+            return sessionId;
         }
-        return sessionId;
+        return undefined;
     };
     var sessionIdKey = 'msa-session-id';
 
     function scheduleNextUpload() {
-        timerId = window.setTimeout(uploadData, interval);
+        timerId = setTimeout(uploadData, interval);
     }
 
     function uploadData() {
@@ -61,7 +68,17 @@
         var http = new XMLHttpRequest();
         http.onreadystatechange = function () {
             if (http.readyState === XMLHttpRequest.DONE && timerId == null) {
-                scheduleNextUpload();
+                if (http.status === 401) {
+                    // property ID / key is invalid, pointless sending further requests
+                    // setting the below prevents needless memory consumption
+                    isDisabledDueToAuthorizationFailure = true;
+                    if (console) {
+                        console.warn('MicroserviceAnalytics client unauthorised - invalid property ID / key pair');
+                    }
+                }
+                else {
+                    scheduleNextUpload();                    
+                }
             }
         };
         http.open("POST", collectionEndPoint, true);
@@ -93,8 +110,8 @@
             }
         }
     }
-    function errorHandler() {
-        //var evt = ev;
+    function errorHandler(errorEvent) {
+        analytics.handleJavaScriptError(errorEvent.error);
     }
 
     function createCorrelationId() {
@@ -209,8 +226,9 @@
         if (autoStartJourneys) {
             captureEvents();
         }
-        window.addEventListener("error", errorHandler, true);
-        window.onerror = errorHandler;
+        if (window) {
+            window.addEventListener("error", errorHandler, true);            
+        }        
         scheduleNextUpload();
     };
     analytics.beginScope = function () {
@@ -256,6 +274,8 @@
         }
     };
     analytics.endJourney = function (endedWithError) {
+        if (isDisabledDueToAuthorizationFailure) return;
+        
         if (currentJourneyCreatedScope) {
             analytics.endScope();
         }
@@ -270,6 +290,8 @@
         }
     };
     analytics.handleJavaScriptError = function (exception) {
+        if (isDisabledDueToAuthorizationFailure) return;
+        
         if (currentJourney && currentJourneyEndsOnError) {
             analytics.endJourney(true);
         }

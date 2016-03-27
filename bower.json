@@ -16,7 +16,8 @@
     "bower_components",
     "test",
     "tests",
-    "lib"
+    "lib",
+    "samples"
   ],
   "dependencies": {
     "node-uuid": ">=1.4.7",

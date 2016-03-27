@@ -1,0 +1,44 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Microservice Analytics HTML and JavaScript Sample</title>
+  <meta name="description" content="Microservice Analytics HTML and JavaScript Sample">
+  <meta name="author" content="SitePoint">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <p>Hit the button below to generate a JavaScript error. If you use your own property ID and secret then you'll see an error logged against the application.</p>
+  <button id="generateError">Error!</button>
+  <!-- The below pulls in the unminified bower dependencies locally (which requires bower install to have been run) to enable exploration via a debugger -->
+  <script src="../../bower_components/stackframe/stackframe.js"></script>
+  <script src="../../bower_components/error-stack-parser/error-stack-parser.js"></script>
+  <script src="../../bower_components/node-uuid/uuid.js"></script>
+  <script src="../../microserviceAnalyticsCore.js"></script>
+  <!-- If you just want things "to work" uncomment the following that includes the full bundled and minifed  library -->
+  <!--<script src="../../lib/microserviceanalyticscore.0.4.0.min.js"></script>-->
+  
+  <script type="text/javascript">
+    document.onreadystatechange = function() {
+        if (document.readyState === 'complete') {
+            microserviceAnalytics.configure({
+                propertyId:"YOUR-PROPERTY-ID",
+                propertyKey:"YOUR-PROPERTY-KEY",
+                uploadIntervalMs:"3000",
+                correlationEnabled:"true",
+                correlationIdKey:"correlation-id"
+            });
+            
+            document.getElementById('generateError').onclick = function() {
+                thisshould.generateanerror();  
+            };
+        }
+    }; 
+  </script>  
+</body>
+</html>
