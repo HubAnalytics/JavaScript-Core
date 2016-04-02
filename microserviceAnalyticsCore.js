@@ -192,7 +192,8 @@
             + '-' + pad(now.getDate())
             + 'T' + pad(now.getHours())
             + ':' + pad(now.getMinutes()) 
-            + ':' + pad(now.getSeconds()) 
+            + ':' + pad(now.getSeconds())
+            + '.' + pad(now.getMilliseconds())
             + dif + pad(tzo / 60) 
             + ':' + pad(tzo % 60);
     };
