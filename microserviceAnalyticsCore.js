@@ -10,6 +10,7 @@
     var correlationIdKey = "correlation-id";
     var correlationEnabled = true;
     var timerId = null;
+    var headCorrelationId= null;
     var correlationIdPrefix = "";
     var autoStartJourneys = true;
     var currentJourney = null;
@@ -58,11 +59,21 @@
             return;
         }
         timerId = null;
-        var payload = JSON.stringify({
+        var payloadObject = {
             ApplicationVersion: "1.0.0.0",
             Source: "javascript",
             Events: queuedEvents
-        });
+        };
+        if (window) {
+            var orientation = window.screen.orientation || window.screen.mozOrientation || window.screen.msOrientation;
+            payloadObject.Environment = {
+                ScreenWidth: window.screen.width,
+                ScreenHeight: window.screen.height,
+                ScreenColorDepth: window.screen.colorDepth,
+                Orientation: orientation                
+            };
+        }
+        var payload = JSON.stringify(payloadObject);
         // do we want to build in some sense of retry on failure
         queuedEvents = [];
         var http = new XMLHttpRequest();
@@ -124,6 +135,13 @@
         }
         return correlationId;
     }
+    function getOrCreateCorrelationId() {
+        var correlationId = analytics.getContextualCorrelationId();
+        if (!correlationId) {
+            correlationId = createCorrelationId();
+        }
+        return correlationId;
+    }
     function isHttpError(status) {
         return status !== 200;
     }
@@ -131,7 +149,7 @@
     (function (open) {
         XMLHttpRequest.prototype.open = function () {
             var that = this;
-            var correlationId = createCorrelationId();
+            var correlationId = getOrCreateCorrelationId();
             var thatonreadystatechange = that.onreadystatechange;
             this.onreadystatechange = function () {
                 if (that.readyState === XMLHttpRequest.DONE && isHttpError(that.status)) {
@@ -160,6 +178,24 @@
             send.apply(this, arguments);
         };
     })(XMLHttpRequest.prototype.send);
+    
+    function formatLocalDate() {
+        var now = new Date(),
+            tzo = -now.getTimezoneOffset(),
+            dif = tzo >= 0 ? '+' : '-',
+            pad = function(num) {
+                var norm = Math.abs(Math.floor(num));
+                return (norm < 10 ? '0' : '') + norm;
+            };
+        return now.getFullYear() 
+            + '-' + pad(now.getMonth()+1)
+            + '-' + pad(now.getDate())
+            + 'T' + pad(now.getHours())
+            + ':' + pad(now.getMinutes()) 
+            + ':' + pad(now.getSeconds()) 
+            + dif + pad(tzo / 60) 
+            + ':' + pad(tzo % 60);
+    };
 
     // Options include:
     //   propertyId - required, must match a property ID configured in the portal
@@ -176,6 +212,7 @@
     //   sessionIdProvider - function that returns a session ID as a string, optional, defaults to a guid generated if missing and saved in session storage
     //   userIdKey - optional, defaults to msa-user-id, the http header to use to send user IDs with
     //   sessionIdKey - optional, defaults to msa-session-id, the http header to use to send session IDs with
+    //   corePageViewReportingEnabled - optional, defaults to true and will cause the JS library to record a page view as it is loaded
     // 
     // You can set both a whitelist and a blacklist but you only need one.
     //
@@ -228,8 +265,18 @@
         }
         if (window) {
             window.addEventListener("error", errorHandler, true);            
-        }        
-        scheduleNextUpload();
+        }
+        
+        if (options.corePageViewReportingEnabled && window) {
+            // if we're catching page view data on page load then we need to fire it off
+            analytics.pageView(window.location.toString());
+            uploadData();
+        }
+        else {
+            // if we're not catching page view data on page load then we can wait for a period
+            // before attempting an upload
+            scheduleNextUpload();    
+        }
     };
     analytics.beginScope = function () {
         analytics.scopeCorrelationId = correlationIdPrefix + uuid.v4();
@@ -260,7 +307,7 @@
         currentJourneyEndsOnError = endsOnError;
         currentJourney = {
             EventType: 'journey',
-            EventStartDateTime: new Date().toISOString(),
+            EventStartDateTime: formatLocalDate(),
             EventEndDateTime: null,
             CorrelationIds: [],
             Data: {
@@ -289,6 +336,22 @@
             currentJourney = null;
         }
     };
+    analytics.pageView = function(url, additionalData) {
+        if (!additionalData) {
+            additionalData = { };
+        }
+        additionalData.Url = url;
+        var pageViewEvent = {
+            EventType: "pageview",
+            EventStartDateTime: formatLocalDate(),
+            EventEndDateTime: null,
+            CorrelationIds: [ getOrCreateCorrelationId() ],
+            UserId: userIdProvider(),
+            SessionId: sessionIdProvider(),
+            Data: additionalData
+        };
+        queuedEvents.push(pageViewEvent);
+    }
     analytics.handleJavaScriptError = function (exception) {
         if (isDisabledDueToAuthorizationFailure) return;
         
@@ -309,9 +372,9 @@
         }
         var errorEvent = {
             EventType: "error",
-            EventStartDateTime: new Date().toISOString(),
+            EventStartDateTime: formatLocalDate(),
             EventEndDateTime: null,
-            CorrelationIds: [],
+            CorrelationIds: [ getOrCreateCorrelationId() ],
             Data: {
                 StackFrames: stackFrames,
                 Message: exception.message,
@@ -326,6 +389,9 @@
             analytics.endJourney(true);
         }
     };
+    analytics.createCorrelationId = createCorrelationId;
+    analytics.getContextualCorrelationId = function() { return null; }
+    
 
     global.microserviceAnalytics = analytics;
 }).call(this);
