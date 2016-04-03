@@ -10,44 +10,71 @@
     var correlationIdKey = "correlation-id";
     var correlationEnabled = true;
     var timerId = null;
-    var headCorrelationId= null;
+    var tailCorrelationCookieName = "msatailcorrelation";
     var correlationIdPrefix = "";
     var autoStartJourneys = true;
     var currentJourney = null;
     var currentJourneyEndsOnError = true;
     var currentJourneyCreatedScope = false;
+    var corePageViewReportingEnabled = true;
     var scopeCorrelationId = null;
     var isDisabledDueToAuthorizationFailure = false;
+    var useTrackingCookies = true;
+    var useTrackingLocalStorage = true;
+    var userTrackingCookieName = 'msausertracker';
+    var sessionTrackingCookieName = 'msasessiontracker';
+    var userIdKey = 'msa-user-id';
+    var sessionIdKey = 'msa-session-id';
     var httpWhitelist = [];
     var httpBlacklist = [];
     var analytics = {
         endJourneyAfterHttpRequest: false,
         journeyCodeOwnedByScope: false
     };
+    
     var userIdProvider = function() {
+        var userId;
         if (window) {
-            var userId = window.localStorage.getItem('msa-user-id');
-            if (!userId) {
-                userId = uuid.v4();
-                window.localStorage.setItem('msa-user-id', userId);
+            if (useTrackingCookies) {
+                userId = getCookie(userTrackingCookieName);
+                if (userId) {
+                    return userId;
+                }
             }
-            return userId;            
+            if (useTrackingLocalStorage) {
+                userId = window.localStorage.getItem(userIdKey);
+                if (!userId) {
+                    userId = uuid.v4();
+                    window.localStorage.setItem(userIdKey, userId);
+                }
+                return userId;
+            }            
         }
         return undefined;
     };
-    var userIdKey = 'msa-user-id';
+    
     var sessionIdProvider = function() {
+        var sessionId;
         if (window) {
-            var sessionId = window.sessionStorage.getItem('msa-session-id');
-            if (!sessionId) {
-                sessionId = uuid.v4();
-                window.sessionStorage.setItem('msa-session-id', sessionId);
+            if (useTrackingCookies) {
+                sessionId = getCookie(sessionTrackingCookieName);
+                if (sessionId) {
+                    return sessionId;
+                }
             }
-            return sessionId;
+
+            if (useTrackingLocalStorage) {
+                sessionId = window.sessionStorage.getItem(sessionIdKey);
+                if (!sessionId) {
+                    sessionId = uuid.v4();
+                    window.sessionStorage.setItem(sessionIdKey, sessionId);
+                }
+                return sessionId;
+            }
         }
         return undefined;
     };
-    var sessionIdKey = 'msa-session-id';
+    
 
     function scheduleNextUpload() {
         timerId = setTimeout(uploadData, interval);
@@ -198,6 +225,17 @@
             + ':' + pad(tzo % 60);
     };
 
+    function getCookie(cname) {
+        var name = cname + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1);
+            if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+        }
+        return null;
+    }
+
     // Options include:
     //   propertyId - required, must match a property ID configured in the portal
     //   propertyKey - required, access key, must match a data access key for the property configured in the portal
@@ -214,6 +252,11 @@
     //   userIdKey - optional, defaults to msa-user-id, the http header to use to send user IDs with
     //   sessionIdKey - optional, defaults to msa-session-id, the http header to use to send session IDs with
     //   corePageViewReportingEnabled - optional, defaults to true and will cause the JS library to record a page view as it is loaded
+    //   tailCorrelationCookieName - optional, defaults to msatailcorrelation
+    //   useTrackingLocalStorage - optional, should local storage be inspected for user and session tracking, defaults to true
+    //   useTrackingCookies - optional, should user tracking cookies be inspected, defaults to true
+    //   sessionTrackingCookieName - optional, name of the session tracking cookie, defaults to msasessiontracker
+    //   userTrackingCookieName - optional, name of the user tracking cookie, defaults to msausertracker
     // 
     // You can set both a whitelist and a blacklist but you only need one.
     //
@@ -231,7 +274,7 @@
         if (options.correlationIdKey) {
             correlationIdKey = options.correlationIdKey;
         }
-        if (options.correlationEnabled) {
+        if (options.correlationEnabled !== undefined) {
             correlationEnabled = options.correlationEnabled;
         }
         if (options.correlationIdPrefix) {
@@ -240,7 +283,7 @@
         else {
             correlationIdPrefix = propertyId + '-';
         }
-        if (options.autoStartJourneys) {
+        if (options.autoStartJourneys !== undefined) {
             autoStartJourneys = options.autoStartJourneys;
         }
         if (options.httpBlacklist) {
@@ -261,16 +304,34 @@
         if (options.sessionIdKey) {
             sessionIdKey = options.sessionIdKey;
         }
+        if (options.corePageViewReportingEnabled !== undefined) {
+            corePageViewReportingEnabled = options.corePageViewReportingEnabled;
+        }
+        if (options.useTrackingCookies !== undefined) {
+            useTrackingCookies = options.useTrackingCookies;
+        }
+        if (options.useTrackingLocalStorage !== undefined) {
+            useTrackingLocalStorage = options.useTrackingLocalStorage;
+        }
+        userTrackingCookieName = options.userTrackingCookieName || userTrackingCookieName;
+        sessionTrackingCookieName = options.sessionTrackingCookieName || sessionTrackingCookieName;
+        tailCorrelationCookieName = options.tailCorrelationCookieName || tailCorrelationCookieName;
         if (autoStartJourneys) {
             captureEvents();
         }
         if (window) {
-            window.addEventListener("error", errorHandler, true);            
+            window.addEventListener("error", errorHandler, true);
         }
         
-        if (options.corePageViewReportingEnabled && window) {
+        if (corePageViewReportingEnabled && window) {
             // if we're catching page view data on page load then we need to fire it off
-            analytics.pageView(window.location.toString());
+            var tailCorrelationCookieValue = getCookie(tailCorrelationCookieName);
+            if (tailCorrelationCookieValue !== undefined && tailCorrelationCookieValue !== null) {
+                if (tailCorrelationCookieValue.length === 0) {
+                    tailCorrelationCookieValue = undefined;
+                }
+            }
+            analytics.pageView(window.location.toString(), null, tailCorrelationCookieValue);
             uploadData();
         }
         else {
@@ -337,7 +398,7 @@
             currentJourney = null;
         }
     };
-    analytics.pageView = function(url, additionalData) {
+    analytics.pageView = function(url, additionalData, correlationId) {
         if (!additionalData) {
             additionalData = { };
         }
@@ -346,7 +407,7 @@
             EventType: "pageview",
             EventStartDateTime: formatLocalDate(),
             EventEndDateTime: null,
-            CorrelationIds: [ getOrCreateCorrelationId() ],
+            CorrelationIds: [ correlationId ? correlationId : getOrCreateCorrelationId() ],
             UserId: userIdProvider(),
             SessionId: sessionIdProvider(),
             Data: additionalData
