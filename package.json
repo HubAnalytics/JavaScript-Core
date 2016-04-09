@@ -1,8 +1,8 @@
 {
-  "name": "microserviceanalyticscore",
+  "name": "hubanalyticscore",
   "version": "1.0.0",
-  "description": "Core JavaScript for the MicroserviceAnalytics solution",
-  "main": "microserviceAnalyticsCore.js",
+  "description": "Core JavaScript for the HubAnalytics solution",
+  "main": "hubAnalyticsCore.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

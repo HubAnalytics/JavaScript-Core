@@ -1,5 +1,5 @@
 {
-  "name": "microserviceanalytics-core",
+  "name": "hubanalytics-core",
   "homepage": "https://www.microserviceanalytics.com",
   "authors": [
     "James Randall"
@@ -23,5 +23,5 @@
     "node-uuid": ">=1.4.7",
     "error-stack-parser": "~1.3.3"
   },
-  "main": "microserviceAnalyticsCore.js"
+  "main": "hubAnalyticsCore.js"
 }
