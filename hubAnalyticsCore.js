@@ -437,6 +437,8 @@
             EventStartDateTime: formatLocalDate(),
             EventEndDateTime: null,
             CorrelationIds: [ getOrCreateCorrelationId() ],
+            UserId: userIdProvider(),
+            SessionId: sessionIdProvider(),
             Data: {
                 StackFrames: stackFrames,
                 Message: exception.message,
